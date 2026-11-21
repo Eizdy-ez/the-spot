@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Spot — Spot the Difference</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Trebuchet MS", "Segoe UI", Verdana, sans-serif;
+    background: #1d2b53;
+    color: #fff3e0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  header {
+    width: 100%;
+    max-width: 1280px;
+    padding: 10px 16px 6px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  h1 { font-size: 30px; letter-spacing: 2px; color: #ffd93b; text-shadow: 2px 2px 0 #7b2fbe; }
+  h1 span { color: #ff6b9d; }
+  .subtitle { font-size: 13px; color: #cfe8ff; }
+  .hud {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .chip {
+    background: #29366f;
+    border: 2px solid #4d6cb5;
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: 14px;
+    font-weight: bold;
+    white-space: nowrap;
+  }
+  .chip.accent { background: #7b2fbe; border-color: #b197fc; color: #fff; }
+  .chip.low { background: #c2255c; border-color: #ff6b9d; animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: 0.55; } }
+  button {
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: bold;
+    color: #1d2b53;
+    background: #ffd93b;
+    border: none;
+    border-radius: 999px;
+    padding: 7px 14px;
+    cursor: pointer;
+  }
+  button:hover { background: #ffe98a; }
+  button:disabled { opacity: 0.45; cursor: default; }
+  button.ghost { background: transparent; color: #fff3e0; border: 2px solid #4d6cb5; }
+  button.ghost:hover { background: #29366f; }
+  main {
+    width: 100%;
+    max-width: 1280px;
+    padding: 0 16px;
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .boards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .panel { position: relative; }
+  .panel-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 4px 6px;
+    color: #cfe8ff;
+  }
+  .panel-label b { color: #ffd93b; }
+  canvas {
+    width: 100%;
+    height: auto;
+    display: block;
+    border: 4px solid #4d6cb5;
+    border-radius: 12px;
+    background: #cfeefb;
+    cursor: crosshair;
+  }
+  .hint-bar {
+    margin-top: 8px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    color: #cfe8ff;
+  }
+  .levels-strip {
+    margin-top: 12px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+  .level-chip {
+    background: #29366f;
+    border: 2px solid #4d6cb5;
+    border-radius: 10px;
+    padding: 7px 16px;
+    font-size: 14px;
+    font-weight: bold;
+    color: #8ea3d8;
+  }
+  .level-chip.current { border-color: #ffd93b; color: #ffd93b; background: #3a2f5e; }
+  .level-chip.done { border-color: #2f9e44; color: #51cf66; background: #1f3d2b; }
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(18, 24, 54, 0.88);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    text-align: center;
+    padding: 24px;
+    z-index: 5;
+  }
+  .overlay.hidden { display: none; }
+  .overlay h2 { font-size: 44px; color: #ffd93b; text-shadow: 3px 3px 0 #7b2fbe; }
+  .overlay h2.pink { color: #ff6b9d; }
+  .overlay p { font-size: 17px; max-width: 560px; line-height: 1.5; }
+  .overlay .big { font-size: 24px; font-weight: bold; color: #ffd93b; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .howto {
+    background: #29366f;
+    border: 2px solid #4d6cb5;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 14px;
+    line-height: 1.7;
+    max-width: 640px;
+    text-align: left;
+  }
+  .howto.hidden { display: none; }
+  footer {
+    padding: 8px 16px 14px;
+    font-size: 12px;
+    color: #8ea3d8;
+    text-align: center;
+  }
+  kbd {
+    background: #1d2b53;
+    border: 1px solid #4d6cb5;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: inherit;
+  }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>THE <span>SPOT</span></h1>
+    <div class="subtitle">A spot-the-difference game — find 7 differences in every level</div>
+  </div>
+  <div class="hud">
+    <span class="chip accent" id="hud-level">Level 1 — Morning Park</span>
+    <span class="chip" id="hud-found">0 / 7 found</span>
+    <span class="chip accent" id="hud-remaining">Remaining 7</span>
+    <span class="chip" id="hud-timer">1:30</span>
+    <span class="chip" id="hud-hearts">♥♥♥</span>
+    <span class="chip" id="hud-score">Score 0</span>
+    <button id="btn-hint" type="button">💡 <span id="hud-hints">Hint (2)</span></button>
+    <button id="btn-pause" type="button" class="ghost">⏸ Pause</button>
+    <button id="btn-sound" type="button" class="ghost">🔊 Sound on</button>
+  </div>
+</header>
+<main>
+  <div class="boards">
+    <div class="panel">
+      <div class="panel-label"><span><b>A</b> — Original Picture</span><span>Click a difference here…</span></div>
+      <canvas id="panel-left" width="600" height="400"></canvas>
+    </div>
+    <div class="panel">
+      <div class="panel-label"><span><b>B</b> — Changed Picture</span><span>…or here, both count!</span></div>
+      <canvas id="panel-right" width="600" height="400"></canvas>
+    </div>
+  </div>
+  <div class="hint-bar">
+    <span>🖱️ Click a difference in picture A or B &nbsp;•&nbsp; ⌨️ <kbd>H</kbd> hint &nbsp;•&nbsp; <kbd>P</kbd> pause &nbsp;•&nbsp; <kbd>M</kbd> sound</span>
+  </div>
+  <div class="levels-strip">
+    <span class="level-chip current" id="level-chip-0">1 · Morning Park</span>
+    <span class="level-chip" id="level-chip-1">2 · Sunset Beach</span>
+    <span class="level-chip" id="level-chip-2">3 · Afternoon Café</span>
+  </div>
+
+  <div class="overlay" id="overlay-start">
+    <h2>THE SPOT</h2>
+    <p>Two nearly identical pictures, side by side. There are <b>7 hidden differences</b>
+    in every level — click a difference in the left picture <b>or</b> the right one.
+    Correct: a green circle and your score goes up. Wrong: you lose a heart.
+    Three levels: Morning Park, Sunset Beach, Afternoon Café.</p>
+    <p id="start-best">No score yet — be the first!</p>
+    <div class="row">
+      <button id="btn-start" type="button">▶ Play</button>
+      <button id="btn-how" type="button" class="ghost">How to Play</button>
+    </div>
+    <div class="howto hidden" id="howto">
+      🎯 <b>Goal:</b> find 7 differences before the 90-second timer runs out.<br>
+      💚 <b>Hearts:</b> 3 hearts per level — a wrong click costs 1 heart.<br>
+      💡 <b>Hint:</b> 2 per level — one unfound difference will pulse yellow.<br>
+      ⏱️ <b>Bonus:</b> leftover time turns into points when a level is cleared.<br>
+      🏆 <b>Best score</b> is saved in your browser.
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="overlay-paused">
+    <h2>PAUSED</h2>
+    <p>Take a breather — your time is stopped here.</p>
+    <div class="row">
+      <button id="btn-resume" type="button">▶ Resume</button>
+      <button id="btn-restart" type="button" class="ghost">↺ Restart</button>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="overlay-clear">
+    <h2 id="clear-title">Level complete!</h2>
+    <p id="clear-score">Score increased — time bonus added.</p>
+    <div class="row">
+      <button id="btn-next" type="button">➜ Next Level</button>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="overlay-fail">
+    <h2 class="pink">TIME'S UP</h2>
+    <p>Don't worry, the differences are still there waiting. Try this level again!</p>
+    <div class="row">
+      <button id="btn-retry" type="button">↺ Try Again</button>
+      <button id="btn-menu" type="button" class="ghost">Main Menu</button>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="overlay-win">
+    <h2>🎉 YOU WIN! 🎉</h2>
+    <p>All 21 differences across three levels found. Eagle eyes!</p>
+    <p class="big" id="win-score">Final score: 0</p>
+    <p id="win-best">Best score: 0</p>
+    <div class="row">
+      <button id="btn-again" type="button">▶ Play Again</button>
+      <button id="btn-menu" type="button" class="ghost">Main Menu</button>
+    </div>
+  </div>
+</main>
+<footer>THE SPOT — an original spot-the-difference game, drawn procedurally on canvas, sounds made with WebAudio. No external assets, playable offline.</footer>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
